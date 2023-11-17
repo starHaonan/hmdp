@@ -32,7 +32,7 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
     @Override
     public Result queryTypeLists() {
         //从redis中查询商铺类型
-        String shopTypeJson = stringRedisTemplate.opsForList().leftPop(CACHE_SHOP_TYPE_KEY);
+        String shopTypeJson = stringRedisTemplate.opsForValue().get(CACHE_SHOP_TYPE_KEY);
         if (StrUtil.isNotBlank(shopTypeJson)) {
             //存在,直接返回
             List<ShopType> shopTypeList = JSONUtil.toList(shopTypeJson, ShopType.class);
@@ -46,7 +46,7 @@ public class ShopTypeServiceImpl extends ServiceImpl<ShopTypeMapper, ShopType> i
         if (shopTypesList.isEmpty()) {
             return Result.fail("店铺类型不存在!");
         }
-        stringRedisTemplate.opsForList().leftPush(CACHE_SHOP_TYPE_KEY, JSONUtil.toJsonStr(shopTypesList));
+        stringRedisTemplate.opsForValue().set(CACHE_SHOP_TYPE_KEY, JSONUtil.toJsonStr(shopTypesList));
         return Result.ok(shopTypesList);
     }
 }
