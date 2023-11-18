@@ -129,8 +129,8 @@ public class CacheClient {
      * @param unit       设置key的过期时间单位
      * @return R 返回值
      */
-    public  <R, ID> R queryWithLogicalExpire(String keyPreFix, ID id, Class<R> type,
-                                             Function<ID, R> dbFallback, Long time, TimeUnit unit) {
+    public <R, ID> R queryWithLogicalExpire(String keyPreFix, ID id, Class<R> type,
+                                            Function<ID, R> dbFallback, Long time, TimeUnit unit) {
         String key = keyPreFix + id;
         //从redis中查询缓存
         String json = stringRedisTemplate.opsForValue().get(key);
@@ -179,7 +179,7 @@ public class CacheClient {
     /**
      * 获取互斥锁 (解决缓存击穿)
      *
-     * @param  key 锁key
+     * @param key 锁key
      * @return 锁是否获取成功
      */
     private boolean tryLock(String key) {
@@ -189,10 +189,11 @@ public class CacheClient {
         //因为isHas是Boolean包装类, 做拆箱时,有空指针风险,转换成基本类型
         return BooleanUtil.isTrue(isHas);
     }
+
     /**
      * 释放互斥锁
      *
-     * @param  key 锁key
+     * @param key 锁key
      */
     private void unLock(String key) {
         stringRedisTemplate.delete(key);
