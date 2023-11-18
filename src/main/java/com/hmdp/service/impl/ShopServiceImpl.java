@@ -93,7 +93,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
             //获取互斥锁成功(不存在,根据id查询数据库)
             shop = getById(id);
 
-            //因为是在本地,查询数据库速度很快.模拟一下,高延迟场景
+            //因为是在本地,查询数据库速度很快.模拟一下 高延迟场景
             //Thread.sleep(200);
 
             //数据库中不存在,返回错误,没有此数据
