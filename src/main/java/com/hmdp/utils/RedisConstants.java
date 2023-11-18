@@ -29,7 +29,9 @@ public class RedisConstants {
      * 首页商品类型缓存的key前缀
      */
     public static final String CACHE_SHOP_TYPE_KEY = "cache:shop:type:";
-
+    /**
+     * 互斥锁id前缀
+     */
     public static final String LOCK_SHOP_KEY = "lock:shop:";
     public static final Long LOCK_SHOP_TTL = 10L;
 
