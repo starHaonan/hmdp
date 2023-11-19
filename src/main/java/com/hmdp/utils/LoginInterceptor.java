@@ -27,7 +27,6 @@ import static com.hmdp.utils.RedisConstants.LOGIN_USER_TTL;
  */
 public class LoginInterceptor implements HandlerInterceptor {
 
-
     /**
      * controller方法执行前执行
      * 返回true 程序继续向下执行  不拦截
