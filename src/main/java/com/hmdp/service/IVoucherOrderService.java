@@ -19,4 +19,10 @@ public interface IVoucherOrderService extends IService<VoucherOrder> {
      * @return 订单id
      */
     Result seckillVoucher(Long voucherId);
+
+    /**
+     * 动态代理,实现事务功能
+     *
+     */
+    Result createVoucherOrder(Long voucherId);
 }
