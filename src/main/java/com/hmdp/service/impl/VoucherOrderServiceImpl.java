@@ -9,6 +9,7 @@ import com.hmdp.service.IVoucherOrderService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hmdp.utils.RedisIdWorker;
 import com.hmdp.utils.UserHolder;
+import org.springframework.aop.framework.AopContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +31,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
      * @return 订单id
      */
     @Override
-    @Transactional
     public Result seckillVoucher(Long voucherId) {
         //查询优惠券
         SeckillVoucher voucher = iSeckillVoucherService.getById(voucherId);
@@ -47,15 +47,37 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         if (voucher.getStock() < 1) {
             return Result.fail("库存不足");
         }
+        //用户id
+        Long userId = UserHolder.getUser().getId();
+
+        synchronized (userId.toString().intern()) {
+            //获取代理对象(事务)
+            IVoucherOrderService proxy = (IVoucherOrderService) AopContext.currentProxy();
+            return proxy.createVoucherOrder(voucherId);
+        }
+    }
+
+    /**
+     * 创建订单 用悲观锁实现一人一单  乐观锁实现库存超卖
+     *
+     * @param voucherId 优惠券id
+     * @return 订单id或提示信息
+     */
+    @Override
+    @Transactional
+    public Result createVoucherOrder(Long voucherId) {
+        //在方法上加synchronized,同步的锁是this,也就是当前类
+        //这里锁是用户,每一个用户一把锁,每个用户直接相互不影响. 如果用类锁,相当于整个方法串行执行了,效率低.
 
         //一人一单
         Long userId = UserHolder.getUser().getId();
+
         //查询订单
         int count = query().eq("user_id", userId).eq("voucher_id", voucherId).count();
         //判断是否存在
         if (count > 0) {
             //存在,至少下过一单
-            return Result.fail("已经购买过一次!");
+            return Result.fail("只能购买一次!");
         }
 
         //扣减库存 CAS解决超卖
@@ -80,5 +102,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
         //返回订单id
         return Result.ok(orderId);
+
     }
 }
