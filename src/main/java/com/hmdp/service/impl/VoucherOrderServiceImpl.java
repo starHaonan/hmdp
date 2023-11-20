@@ -18,6 +18,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
@@ -121,7 +122,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         try {
             //由于spring的事务是放在threadLocal中, 此时是多线程,事务会失效
             log.debug("createVoucherOrder..................");
-            this.createVoucherOrder(voucherOrder);
+            proxy.createVoucherOrder(voucherOrder);
         } finally {
             //释放锁
             lock.unlock();
@@ -178,7 +179,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
      * @param voucherOrder 优惠券id
      */
     @Override
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createVoucherOrder(VoucherOrder voucherOrder) {
         //一人一单
         Long userId = UserHolder.getUser().getId();
