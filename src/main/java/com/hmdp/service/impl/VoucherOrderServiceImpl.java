@@ -192,7 +192,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             log.error("只能购买一次!");
             return;
         }
-        log.debug("--------------------------");
         //扣减库存 CAS解决超卖
         boolean isSuccess = iSeckillVoucherService.update()
                 .setSql("stock = stock - 1")
