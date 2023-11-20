@@ -67,6 +67,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
 
     /**
      * 执行线程池
+     *
      * @PostConstruct表示当前类初始化完毕之后,就执行这个方法
      */
     @PostConstruct
@@ -95,6 +96,11 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     }
 
     /**
+     * 代理对象放到当前类中
+     */
+    private IVoucherOrderService proxy;
+
+    /**
      * 创建订单
      *
      * @param voucherOrder 队列当前的订单信息
@@ -104,7 +110,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         //获取用户
         Long userId = voucherOrder.getUserId();
         //使用Redisson 创建锁对象
-        RLock lock = redissonClient.getLock("order" + userId);
+        RLock lock = redissonClient.getLock("lock:order:" + userId);
         //获取锁
         boolean isLock = lock.tryLock();
         if (!isLock) {
@@ -113,17 +119,14 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             return;
         }
         try {
-            proxy.createVoucherOrder(voucherOrder);
+            //由于spring的事务是放在threadLocal中, 此时是多线程,事务会失效
+            log.debug("createVoucherOrder..................");
+            this.createVoucherOrder(voucherOrder);
         } finally {
             //释放锁
             lock.unlock();
         }
     }
-
-    /**
-     * 代理对象放到当前类中
-     */
-    private IVoucherOrderService proxy;
 
     /**
      * 优惠券秒杀
@@ -135,11 +138,12 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     public Result seckillVoucher(Long voucherId) {
         //获取用户
         Long userId = UserHolder.getUser().getId();
+        long orderId = redisIdWorker.nextId("order");
         //执行lua脚本
         Long result = stringRedisTemplate.execute(
                 SECKILL_SCRIPT,
                 Collections.emptyList(),
-                voucherId.toString(), userId.toString()
+                voucherId.toString(), userId.toString(), String.valueOf(orderId)
         );
 
         //判断结果是否有购买资格,也就是是否为0
@@ -154,7 +158,6 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         //创建订单
         VoucherOrder voucherOrder = new VoucherOrder();
         //订单id
-        long orderId = redisIdWorker.nextId("order");
         voucherOrder.setId(orderId);
         //用户id
         voucherOrder.setUserId(userId);
@@ -164,7 +167,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         orderTasks.add(voucherOrder);
 
         //获取代理对象(事务)
-        proxy = (IVoucherOrderService) AopContext.currentProxy();
+        proxy = (IVoucherOrderService)AopContext.currentProxy();
         //返回订单id
         return Result.ok(orderId);
     }
@@ -188,7 +191,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
             log.error("只能购买一次!");
             return;
         }
-
+        log.debug("--------------------------");
         //扣减库存 CAS解决超卖
         boolean isSuccess = iSeckillVoucherService.update()
                 .setSql("stock = stock - 1")
